@@ -46,7 +46,7 @@ export default function DealsPage() {
 
     const { data: dealsData, error } = await supabase
       .from("deals")
-      .select<Deal[]>(`
+      .select(`
         id,
         deal_name,
         deals_customer_id_fkey ( id, company_name ),
@@ -54,9 +54,10 @@ export default function DealsPage() {
       `)
       .order("created_at", { ascending: false });
 
-    if (!error) {
+    if (error) {
       console.error(error);
-      return;
+    } else {
+      setDeals(dealsData ?? []);
     }
 
     setCustomers(customersData ?? []);
