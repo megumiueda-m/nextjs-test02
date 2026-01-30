@@ -37,15 +37,15 @@ export default function DealsPage() {
   /* ===== データ取得 ===== */
 const fetchAll = async () => {
   const { data: customersData } = await supabase
-    .from("customers")
+    .from<Customer>("customers")
     .select("id, company_name");
 
   const { data: productsData } = await supabase
-    .from("products")
+    .from<Product>("products")
     .select("id, product_name");
 
   const { data: dealsData, error } = await supabase
-    .from("deals")
+    .from<Deal>("deals")
     .select(`
       id,
       deal_name,
@@ -61,7 +61,7 @@ const fetchAll = async () => {
 
   setCustomers(customersData ?? []);
   setProducts(productsData ?? []);
-  setDeals((dealsData ?? []) as Deal[]);
+  setDeals(dealsData ?? []);
 };
 
   /* ===== 案件追加 ===== */
