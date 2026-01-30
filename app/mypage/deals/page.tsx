@@ -14,14 +14,14 @@ type Product = {
   product_name: string;
 };
 
-type Deal = {
+type DealRow = {
   id: string;
   deal_name: string;
-  deals_customer_id_fkey?: {
+  deals_customer_id_fkey: {
     id: string;
     company_name: string;
   }[] | null;
-  deals_product_id_fkey?: {
+  deals_product_id_fkey: {
     id: string;
     product_name: string;
   }[] | null;
@@ -34,7 +34,7 @@ export default function DealsPage() {
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [deals, setDeals] = useState<Deal[]>([]);
+  const [deals, setDeals] = useState<DealRow[]>([]);
 
   useEffect(() => {
     fetchAll();
@@ -58,8 +58,7 @@ const fetchAll = async () => {
       deals_customer_id_fkey ( id, company_name ),
       deals_product_id_fkey ( id, product_name )
     `)
-    .order("created_at", { ascending: false })
-    .returns<Deal[]>();
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error(error);
