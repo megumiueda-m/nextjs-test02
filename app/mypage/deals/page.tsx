@@ -138,7 +138,7 @@ export default function DealsPage() {
   };
 
   return (
-    <div style={{ padding: 40 }}>
+    <div style={{ padding: 0 }}>
       <h1 style={{ fontSize: 22, marginBottom: 16 }}>案件管理</h1>
 
       {/* 新規案件 */}
