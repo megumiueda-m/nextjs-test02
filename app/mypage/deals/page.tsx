@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { PDFDocument, rgb } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit"; // ←追加
 
-/* ===== 型定義 ===== */
 type Customer = {
   id: string;
   company_name: string;
@@ -17,14 +18,8 @@ type Product = {
 type DealRow = {
   id: string;
   deal_name: string;
-  deals_customer_id_fkey: {
-    id: string;
-    company_name: string;
-  }[] | null;
-  deals_product_id_fkey: {
-    id: string;
-    product_name: string;
-  }[] | null;
+  deals_customer_id_fkey: Customer | null;
+  deals_product_id_fkey: Product | null;
 };
 
 export default function DealsPage() {
@@ -40,59 +35,103 @@ export default function DealsPage() {
     fetchAll();
   }, []);
 
-  /* ===== データ取得 ===== */
-const fetchAll = async () => {
-  const { data: customersData } = await supabase
-    .from("customers")
-    .select("id, company_name");
+  // ===== データ取得 =====
+  const fetchAll = async () => {
+    const { data: customersData } = await supabase
+      .from("customers")
+      .select("id, company_name");
 
-  const { data: productsData } = await supabase
-    .from("products")
-    .select("id, product_name");
+    const { data: productsData } = await supabase
+      .from("products")
+      .select("id, product_name");
 
-  const { data: dealsData, error } = await supabase
-    .from("deals")
-    .select(`
-      id,
-      deal_name,
-      deals_customer_id_fkey ( id, company_name ),
-      deals_product_id_fkey ( id, product_name )
-    `)
-    .order("created_at", { ascending: false });
+    const { data: dealsData } = await supabase
+      .from("deals")
+      .select(`
+        id,
+        deal_name,
+        deals_customer_id_fkey ( id, company_name ),
+        deals_product_id_fkey ( id, product_name )
+      `)
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error(error);
-    return;
-  }
+    const mappedDeals: DealRow[] = (dealsData ?? []).map((d: any) => ({
+      id: d.id,
+      deal_name: d.deal_name,
+      deals_customer_id_fkey: d.deals_customer_id_fkey ?? null, // ←修正
+      deals_product_id_fkey: d.deals_product_id_fkey ?? null,     // ←修正
+    }));
 
-  setCustomers(customersData ?? []);
-  setProducts(productsData ?? []);
-  setDeals((dealsData ?? []) as DealRow[]);
-};
+    setCustomers(customersData ?? []);
+    setProducts(productsData ?? []);
+    setDeals(mappedDeals);
+  };
 
-  /* ===== 案件追加 ===== */
+  // ===== 案件追加 =====
   const addDeal = async () => {
-    if (!dealName || !customerId || !productId) return;
+    if (!dealName || !customerId || !productId) {
+      alert("すべて入力してください");
+      return;
+    }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    await supabase.from("deals").insert({
+    const { error } = await supabase.from("deals").insert({
       deal_name: dealName,
       customer_id: customerId,
       product_id: productId,
       user_id: user.id,
     });
 
-    setDealName("");
-    setCustomerId("");
-    setProductId("");
-    fetchAll();
+    if (!error) {
+      setDealName("");
+      setCustomerId("");
+      setProductId("");
+      fetchAll();
+    }
   };
 
-  /* ===== 削除 ===== */
+  // ===== PDF生成 =====
+  const generatePDF = async (deal: DealRow) => {
+    const pdfDoc = await PDFDocument.create();
+
+    // fontkit を登録
+    pdfDoc.registerFontkit(fontkit);
+
+    // フォント読み込み
+    const fontBytes = await fetch("/fonts/NotoSansJP-Regular.ttf").then((res) =>
+      res.arrayBuffer()
+    );
+    const customFont = await pdfDoc.embedFont(fontBytes);
+
+    const page = pdfDoc.addPage([595, 842]);
+    const { height } = page.getSize();
+    let y = height - 80;
+
+    const drawText = (text: string) => {
+      page.drawText(text, {
+        x: 60,
+        y,
+        size: 14,
+        font: customFont,
+        color: rgb(0, 0, 0),
+      });
+      y -= 28;
+    };
+
+    drawText("案件情報");
+    drawText(`案件名：${deal.deal_name}`);
+    drawText(`顧客名：${deal.deals_customer_id_fkey?.company_name ?? "-"}`);
+    drawText(`商品名：${deal.deals_product_id_fkey?.product_name ?? "-"}`);
+
+    const pdfBytes = (await pdfDoc.save()) as Uint8Array; // ←型キャスト
+    const blob = new Blob([pdfBytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    window.open(url);
+  };
+
+  // ===== 案件削除 =====
   const deleteDeal = async (id: string) => {
     await supabase.from("deals").delete().eq("id", id);
     fetchAll();
@@ -100,14 +139,14 @@ const fetchAll = async () => {
 
   return (
     <div style={{ padding: 40 }}>
-      <h1>案件管理</h1>
+      <h1 style={{ fontSize: 22, marginBottom: 16 }}>案件管理</h1>
 
-      {/* 新規作成 */}
+      {/* 新規案件 */}
       <div style={cardStyle}>
         <input
+          placeholder="案件名"
           value={dealName}
           onChange={(e) => setDealName(e.target.value)}
-          placeholder="案件名"
           style={inputStyle}
         />
 
@@ -142,23 +181,34 @@ const fetchAll = async () => {
         </button>
       </div>
 
-      {/* 一覧 */}
+      {/* 案件一覧 */}
       <ul>
         {deals.map((d) => (
           <li key={d.id} style={listStyle}>
             <div>
               <strong>{d.deal_name}</strong>
               <div style={smallText}>
-                顧客：{d.deals_customer_id_fkey?.[0]?.company_name ?? "-"}
+                顧客：{d.deals_customer_id_fkey?.company_name ?? "-"}
               </div>
               <div style={smallText}>
-                商品：{d.deals_product_id_fkey?.[0]?.product_name ?? "-"}
+                商品：{d.deals_product_id_fkey?.product_name ?? "-"}
               </div>
             </div>
 
-            <button onClick={() => deleteDeal(d.id)} style={deleteButtonStyle}>
-              削除
-            </button>
+            <div>
+              <button
+                onClick={() => generatePDF(d)}
+                style={{ ...buttonStyle, marginRight: 8 }}
+              >
+                PDF
+              </button>
+              <button
+                onClick={() => deleteDeal(d.id)}
+                style={deleteButtonStyle}
+              >
+                削除
+              </button>
+            </div>
           </li>
         ))}
       </ul>
