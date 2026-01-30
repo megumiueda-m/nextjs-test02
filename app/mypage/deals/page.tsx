@@ -67,7 +67,7 @@ const fetchAll = async () => {
 
   setCustomers(customersData ?? []);
   setProducts(productsData ?? []);
-  setDeals(dealsData ?? []);
+  setDeals((dealsData ?? []) as DealRow[]);
 };
 
   /* ===== 案件追加 ===== */
