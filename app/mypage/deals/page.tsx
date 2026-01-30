@@ -18,8 +18,8 @@ type Product = {
 type Deal = {
   id: string;
   deal_name: string;
-  deals_customer_id_fkey?: Customer;
-  deals_product_id_fkey?: Product;
+  deals_customer_id_fkey?: Customer[]; // ← 配列
+  deals_product_id_fkey?: Product[];   // ← 配列
 };
 
 export default function DealsPage() {
@@ -179,10 +179,10 @@ export default function DealsPage() {
             <div>
               <strong>{d.deal_name}</strong>
               <div style={smallText}>
-                顧客：{d.deals_customer_id_fkey?.company_name ?? "-"}
+                顧客：{d.deals_customer_id_fkey?.[0]?.company_name || "-"}
               </div>
               <div style={smallText}>
-                商品：{d.deals_product_id_fkey?.product_name ?? "-"}
+                商品：{d.deals_product_id_fkey?.[0]?.product_name || "-"}
               </div>
             </div>
 
