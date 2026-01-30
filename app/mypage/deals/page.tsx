@@ -58,7 +58,8 @@ const fetchAll = async () => {
       deals_customer_id_fkey ( id, company_name ),
       deals_product_id_fkey ( id, product_name )
     `)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .returns<Deal[]>();
 
   if (error) {
     console.error(error);
