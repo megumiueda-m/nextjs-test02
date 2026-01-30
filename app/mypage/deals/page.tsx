@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { PDFDocument, rgb } from "pdf-lib";
-import fontkit from "@pdf-lib/fontkit"; // ←追加
+import fontkit from "@pdf-lib/fontkit";
 
+// ===== 型定義 =====
 type Customer = {
   id: string;
   company_name: string;
@@ -58,8 +59,8 @@ export default function DealsPage() {
     const mappedDeals: DealRow[] = (dealsData ?? []).map((d: any) => ({
       id: d.id,
       deal_name: d.deal_name,
-      deals_customer_id_fkey: d.deals_customer_id_fkey ?? null, // ←修正
-      deals_product_id_fkey: d.deals_product_id_fkey ?? null,     // ←修正
+      deals_customer_id_fkey: d.deals_customer_id_fkey ?? null,
+      deals_product_id_fkey: d.deals_product_id_fkey ?? null,
     }));
 
     setCustomers(customersData ?? []);
@@ -96,7 +97,7 @@ export default function DealsPage() {
   const generatePDF = async (deal: DealRow) => {
     const pdfDoc = await PDFDocument.create();
 
-    // fontkit を登録
+    // fontkit 登録
     pdfDoc.registerFontkit(fontkit);
 
     // フォント読み込み
@@ -106,8 +107,7 @@ export default function DealsPage() {
     const customFont = await pdfDoc.embedFont(fontBytes);
 
     const page = pdfDoc.addPage([595, 842]);
-    const { height } = page.getSize();
-    let y = height - 80;
+    let y = page.getHeight() - 80;
 
     const drawText = (text: string) => {
       page.drawText(text, {
@@ -125,8 +125,13 @@ export default function DealsPage() {
     drawText(`顧客名：${deal.deals_customer_id_fkey?.company_name ?? "-"}`);
     drawText(`商品名：${deal.deals_product_id_fkey?.product_name ?? "-"}`);
 
-    const pdfBytes = (await pdfDoc.save()) as Uint8Array; // ←型キャスト
-    const blob = new Blob([pdfBytes], { type: "application/pdf" });
+    // PDF 出力
+    const pdfBytes = await pdfDoc.save();
+    const arrayBuffer = pdfBytes.buffer.slice(
+      pdfBytes.byteOffset,
+      pdfBytes.byteOffset + pdfBytes.byteLength
+    ) as ArrayBuffer;
+    const blob = new Blob([arrayBuffer], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
     window.open(url);
   };
@@ -138,7 +143,7 @@ export default function DealsPage() {
   };
 
   return (
-    <div style={{ padding: 0 }}>
+    <div style={{ padding: 40 }}>
       <h1 style={{ fontSize: 22, marginBottom: 16 }}>案件管理</h1>
 
       {/* 新規案件 */}
