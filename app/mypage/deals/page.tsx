@@ -17,8 +17,14 @@ type Product = {
 type Deal = {
   id: string;
   deal_name: string;
-  deals_customer_id_fkey?: Customer[];
-  deals_product_id_fkey?: Product[];
+  deals_customer_id_fkey?: {
+    id: string;
+    company_name: string;
+  }[] | null;
+  deals_product_id_fkey?: {
+    id: string;
+    product_name: string;
+  }[] | null;
 };
 
 export default function DealsPage() {
@@ -37,15 +43,15 @@ export default function DealsPage() {
   /* ===== データ取得 ===== */
 const fetchAll = async () => {
   const { data: customersData } = await supabase
-    .from<Customer>("customers")
+    .from("customers")
     .select("id, company_name");
 
   const { data: productsData } = await supabase
-    .from<Product>("products")
+    .from("products")
     .select("id, product_name");
 
   const { data: dealsData, error } = await supabase
-    .from<Deal>("deals")
+    .from("deals")
     .select(`
       id,
       deal_name,
