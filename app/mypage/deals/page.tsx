@@ -17,8 +17,8 @@ type Product = {
 type Deal = {
   id: string;
   deal_name: string;
-  deals_customer_id_fkey?: Customer[]; // ← 配列にする
-  deals_product_id_fkey?: Product[];  // ← 配列にする
+  deals_customer_id_fkey?: Customer[];
+  deals_product_id_fkey?: Product[];
 };
 
 export default function DealsPage() {
@@ -46,7 +46,7 @@ export default function DealsPage() {
 
     const { data: dealsData, error } = await supabase
       .from("deals")
-      .select(`
+      .select<Deal[]>(`
         id,
         deal_name,
         deals_customer_id_fkey ( id, company_name ),
@@ -54,14 +54,14 @@ export default function DealsPage() {
       `)
       .order("created_at", { ascending: false });
 
-    if (error) {
+    if (!error) {
       console.error(error);
       return;
     }
 
     setCustomers(customersData ?? []);
     setProducts(productsData ?? []);
-    setDeals(dealsData ?? []);
+    setDeals((dealsData ?? []) as Deal[]);
   };
 
   /* ===== 案件追加 ===== */
