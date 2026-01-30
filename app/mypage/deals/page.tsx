@@ -35,35 +35,34 @@ export default function DealsPage() {
   }, []);
 
   /* ===== データ取得 ===== */
-  const fetchAll = async () => {
-    const { data: customersData } = await supabase
-      .from("customers")
-      .select("id, company_name");
+const fetchAll = async () => {
+  const { data: customersData } = await supabase
+    .from("customers")
+    .select("id, company_name");
 
-    const { data: productsData } = await supabase
-      .from("products")
-      .select("id, product_name");
+  const { data: productsData } = await supabase
+    .from("products")
+    .select("id, product_name");
 
-    const { data: dealsData, error } = await supabase
-      .from("deals")
-      .select(`
-        id,
-        deal_name,
-        deals_customer_id_fkey ( id, company_name ),
-        deals_product_id_fkey ( id, product_name )
-      `)
-      .order("created_at", { ascending: false });
+  const { data: dealsData, error } = await supabase
+    .from("deals")
+    .select(`
+      id,
+      deal_name,
+      deals_customer_id_fkey ( id, company_name ),
+      deals_product_id_fkey ( id, product_name )
+    `)
+    .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error(error);
-    } else {
-      setDeals(dealsData ?? []);
-    }
+  if (error) {
+    console.error(error);
+    return;
+  }
 
-    setCustomers(customersData ?? []);
-    setProducts(productsData ?? []);
-    setDeals((dealsData ?? []) as Deal[]);
-  };
+  setCustomers(customersData ?? []);
+  setProducts(productsData ?? []);
+  setDeals((dealsData ?? []) as Deal[]);
+};
 
   /* ===== 案件追加 ===== */
   const addDeal = async () => {
